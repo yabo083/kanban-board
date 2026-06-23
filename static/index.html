@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>看板</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ─── Theme Tokens ─── */
+:root, [data-theme="dark"] {
+  --bg: #0a0a0f;
+  --bg-elevated: #12121a;
+  --bg-card: #16161f;
+  --bg-card-hover: #1c1c28;
+  --bg-input: #0e0e16;
+  --border: rgba(255,255,255,.06);
+  --border-focus: rgba(255,255,255,.14);
+  --text: #e8e8ed;
+  --text-secondary: #8a8a9a;
+  --text-muted: #4a4a58;
+  --accent: #3b82f6;
+  --accent-dim: rgba(59,130,246,.12);
+  --accent-glow: rgba(59,130,246,.25);
+  --warn: #eab308;
+  --warn-dim: rgba(234,179,8,.12);
+  --success: #22c55e;
+  --success-dim: rgba(34,197,94,.12);
+  --danger: #ef4444;
+  --danger-dim: rgba(239,68,68,.1);
+  --archive: #a78bfa;
+  --archive-dim: rgba(167,139,250,.12);
+  --shadow-card: 0 1px 3px rgba(0,0,0,.3), 0 0 0 1px rgba(255,255,255,.03);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.05);
+  --fab-shadow: 0 4px 20px rgba(59,130,246,.35);
+  --fab-shadow-hover: 0 6px 28px rgba(59,130,246,.45);
+  --modal-bg: #12121a;
+  --overlay-bg: rgba(0,0,0,.6);
+  --scrollbar-thumb: rgba(255,255,255,.1);
+}
+
+[data-theme="light"] {
+  --bg: #f5f5f7;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fafafa;
+  --bg-input: #f0f0f2;
+  --border: rgba(0,0,0,.08);
+  --border-focus: rgba(0,0,0,.15);
+  --text: #1a1a2e;
+  --text-secondary: #6b6b80;
+  --text-muted: #9a9aaa;
+  --accent: #2563eb;
+  --accent-dim: rgba(37,99,235,.08);
+  --accent-glow: rgba(37,99,235,.15);
+  --warn: #ca8a04;
+  --warn-dim: rgba(202,138,4,.1);
+  --success: #16a34a;
+  --success-dim: rgba(22,163,74,.08);
+  --danger: #dc2626;
+  --danger-dim: rgba(220,38,38,.08);
+  --archive: #7c3aed;
+  --archive-dim: rgba(124,58,237,.08);
+  --shadow-card: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.06);
+  --fab-shadow: 0 4px 20px rgba(37,99,235,.25);
+  --fab-shadow-hover: 0 6px 28px rgba(37,99,235,.35);
+  --modal-bg: #ffffff;
+  --overlay-bg: rgba(0,0,0,.3);
+  --scrollbar-thumb: rgba(0,0,0,.12);
+}
+
+/* ─── Base ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  transition: background .3s, color .3s;
+}
+
+/* ─── Header ─── */
+.header {
+  padding: 20px 24px 0;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0;
+  background: var(--bg); z-index: 100;
+  transition: background .3s;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.header-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent-glow);
+}
+.header-actions { display: flex; gap: 4px; }
+.header-btn {
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 32px; height: 32px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; cursor: pointer;
+  transition: all .2s cubic-bezier(.16,1,.3,1);
+}
+.header-btn:hover { background: var(--bg-card); color: var(--text); border-color: var(--border-focus); }
+.header-btn:active { transform: scale(.93); }
+.header-btn.active { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+
+/* ─── Tab Bar ─── */
+.tab-bar {
+  display: flex; gap: 0; padding: 12px 24px 0;
+  position: sticky; top: 52px;
+  background: var(--bg); z-index: 99;
+}
+.tab-btn {
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  color: var(--text-muted); background: transparent;
+  border: none; border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .2s;
+  letter-spacing: 0.02em;
+  display: flex; align-items: center; gap: 6px;
+}
+.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-badge {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500;
+  background: var(--accent-dim); color: var(--accent);
+  padding: 1px 6px; border-radius: 100px;
+}
+
+/* ─── Stats ─── */
+.stats {
+  display: flex; gap: 6px;
+  padding: 12px 24px 12px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.stat {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 100px; white-space: nowrap;
+}
+.stat b { color: var(--text-secondary); font-weight: 600; margin-left: 3px; }
+
+/* ─── Board ─── */
+.board {
+  display: flex; gap: 10px;
+  padding: 8px 24px 100px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}
+.column { flex: 0 0 calc(33.333% - 7px); min-width: 280px; scroll-snap-align: start; display: flex; flex-direction: column; }
+.col-header { padding: 8px 4px 12px; display: flex; align-items: center; gap: 8px; }
+.col-dot { width: 7px; height: 7px; border-radius: 50%; }
+.col-name { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); }
+.col-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; color: var(--text-muted); margin-left: auto; }
+.column[data-status="todo"] .col-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
+.column[data-status="doing"] .col-dot { background: var(--warn); box-shadow: 0 0 6px var(--warn-dim); }
+.column[data-status="done"] .col-dot { background: var(--success); box-shadow: 0 0 6px var(--success-dim); }
+
+.cards { display: flex; flex-direction: column; gap: 6px; min-height: 40px; flex: 1; }
+.cards.drag-over { background: var(--accent-dim); border-radius: 10px; outline: 1.5px dashed var(--accent); outline-offset: 2px; }
+
+/* ─── Card ─── */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  cursor: pointer; position: relative;
+  box-shadow: var(--shadow-card);
+  transition: all .2s cubic-bezier(.16,1,.3,1);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.card:hover { background: var(--bg-card-hover); border-color: var(--border-focus); box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+.card:active { transform: translateY(0) scale(.99); }
+.card.dragging { opacity: .4; transform: scale(.96); }
+.card-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.4; margin-bottom: 4px; }
+.card-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; color: var(--text-muted); }
+.card-pri { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.pri-high { background: var(--danger-dim); color: var(--danger); }
+.pri-normal { background: var(--accent-dim); color: var(--accent); }
+.pri-low { background: rgba(128,128,128,.08); color: var(--text-muted); }
+.card-notes { font-size: 11px; color: var(--accent); margin-top: 6px; opacity: .8; }
+
+/* Mobile swipe hint */
+.card .swipe-hint {
+  display: none;
+  position: absolute; top: 50%; right: 12px;
+  transform: translateY(-50%);
+  font-size: 16px; color: var(--text-muted);
+  opacity: 0; transition: opacity .2s;
+}
+.card.swiping .swipe-hint { display: block; opacity: .6; }
+
+/* ─── Archive View ─── */
+.archive-view {
+  padding: 8px 24px 100px;
+  display: none;
+}
+.archive-view.active { display: block; }
+.board.hidden { display: none; }
+
+.archive-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px; flex-wrap: wrap;
+}
+.archive-search {
+  flex: 1; min-width: 180px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 12px;
+  color: var(--text); font-size: 13px; font-family: 'Outfit', sans-serif;
+  outline: none; transition: border-color .2s;
+  -webkit-appearance: none;
+}
+.archive-search:focus { border-color: var(--accent); }
+.archive-search::placeholder { color: var(--text-muted); }
+
+.archive-list { display: flex; flex-direction: column; gap: 8px; }
+
+.archive-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+  transition: all .2s cubic-bezier(.16,1,.3,1);
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.archive-card:hover { background: var(--bg-card-hover); border-color: var(--border-focus); box-shadow: var(--shadow-card-hover); }
+
+.archive-card-body { flex: 1; min-width: 0; cursor: pointer; }
+.archive-card-actions {
+  display: flex; gap: 4px; flex-shrink: 0;
+  opacity: 0.5; transition: opacity .2s;
+}
+.archive-card:hover .archive-card-actions { opacity: 1; }
+
+.archive-action-btn {
+  width: 30px; height: 30px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg-elevated);
+  color: var(--text-secondary); font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s;
+}
+.archive-action-btn:hover { background: var(--bg-card); color: var(--text); border-color: var(--border-focus); }
+.archive-action-btn.unarchive:hover { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-dim); }
+.archive-action-btn.delete:hover { color: var(--danger); border-color: rgba(239,68,68,.2); background: var(--danger-dim); }
+
+.archive-status-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500;
+  padding: 2px 7px; border-radius: 4px;
+  display: inline-block; margin-top: 4px;
+}
+.archive-status-done { background: var(--success-dim); color: var(--success); }
+.archive-status-doing { background: var(--warn-dim); color: var(--warn); }
+.archive-status-todo { background: var(--accent-dim); color: var(--accent); }
+
+.archive-empty {
+  text-align: center; padding: 60px 16px;
+  color: var(--text-muted); font-size: 14px;
+}
+.archive-empty-icon { font-size: 36px; margin-bottom: 12px; opacity: .5; }
+
+/* ─── Empty ─── */
+.empty { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 13px; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: var(--overlay-bg); backdrop-filter: blur(4px);
+  z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal {
+  background: var(--modal-bg); border: 1px solid var(--border-focus);
+  border-radius: 14px 14px 0 0;
+  width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
+  padding: 24px;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.16,1,.3,1);
+}
+.modal-overlay.active .modal { transform: translateY(0); }
+@media (min-width: 768px) {
+  .modal-overlay { align-items: center; }
+  .modal { border-radius: 14px; max-height: 80vh; }
+}
+.modal h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 20px; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+
+/* ─── FORM INPUTS: DARK/LIGHT AWARE ─── */
+.form-group input,
+.form-group textarea,
+.form-group select,
+.note-wrap input,
+.move-search input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  outline: none;
+  transition: border-color .2s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-muted);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus,
+.note-wrap input:focus,
+.move-search input:focus {
+  border-color: var(--accent);
+}
+.form-group textarea { resize: vertical; min-height: 64px; }
+
+/* Custom select arrow */
+.form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238a8a9a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+[data-theme="light"] .form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b6b80' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+}
+
+/* Select dropdown options styling */
+.form-group select option {
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 8px;
+}
+
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; }
+.btn {
+  border: none; padding: 10px 18px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; font-family: 'Outfit', sans-serif;
+  cursor: pointer; flex: 1;
+  transition: all .2s cubic-bezier(.16,1,.3,1);
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg-card); color: var(--text); border-color: var(--border-focus); }
+.btn-archive { background: var(--archive-dim); color: var(--archive); border: 1px solid transparent; }
+.btn-archive:hover { border-color: var(--archive); }
+
+.note-wrap { display: flex; gap: 8px; margin-top: 12px; }
+.note-wrap input { flex: 1; }
+.note-wrap .btn { padding: 8px 12px; flex: 0; min-width: 36px; }
+.notes-list { margin-top: 8px; max-height: 100px; overflow-y: auto; }
+.note-item { font-size: 12px; color: var(--text-secondary); padding: 5px 0; border-bottom: 1px solid var(--border); }
+.note-item:last-child { border: none; }
+.note-time { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-muted); margin-right: 6px; }
+.detail-actions { display: flex; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+/* ─── Move Sheet (mobile action sheet) ─── */
+.move-sheet-overlay {
+  position: fixed; inset: 0;
+  background: var(--overlay-bg); backdrop-filter: blur(4px);
+  z-index: 300; display: flex; align-items: flex-end; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.move-sheet-overlay.active { opacity: 1; pointer-events: auto; }
+.move-sheet {
+  background: var(--modal-bg); border: 1px solid var(--border-focus);
+  border-radius: 14px 14px 0 0;
+  width: 100%; max-width: 480px; padding: 16px 24px 32px;
+  transform: translateY(100%); transition: transform .3s cubic-bezier(.16,1,.3,1);
+}
+.move-sheet-overlay.active .move-sheet { transform: translateY(0); }
+@media (min-width: 768px) {
+  .move-sheet-overlay { align-items: center; }
+  .move-sheet { border-radius: 14px; max-width: 360px; }
+}
+.move-sheet h3 { font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-align: center; }
+.move-option {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: 10px;
+  border: 1px solid var(--border); margin-bottom: 6px;
+  background: var(--bg-card); cursor: pointer;
+  transition: all .15s;
+  font-size: 14px; font-weight: 500;
+}
+.move-option:hover { background: var(--bg-card-hover); border-color: var(--border-focus); }
+.move-option:active { transform: scale(.98); }
+.move-option.current { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+.move-option .dot { width: 8px; height: 8px; border-radius: 50%; }
+.move-option .label { flex: 1; }
+.move-option .check { font-size: 16px; color: var(--accent); }
+.move-cancel {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  background: var(--bg-elevated); color: var(--text-secondary);
+  font-size: 14px; font-weight: 600; font-family: 'Outfit', sans-serif;
+  cursor: pointer; margin-top: 8px;
+  transition: all .15s;
+}
+.move-cancel:hover { background: var(--bg-card); color: var(--text); }
+
+/* ─── FAB ─── */
+.fab {
+  position: fixed; bottom: 28px; right: 28px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none;
+  font-size: 24px; font-weight: 300; cursor: pointer; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--fab-shadow);
+  transition: all .2s cubic-bezier(.16,1,.3,1);
+}
+.fab:hover { transform: scale(1.08); box-shadow: var(--fab-shadow-hover); }
+.fab:active { transform: scale(.95); }
+
+/* ─── Mobile ─── */
+@media (max-width: 768px) {
+  .board { flex-direction: column; overflow-x: visible; scroll-snap-type: none; padding: 8px 16px 100px; gap: 24px; }
+  .column { flex: none; min-width: 0; width: 100%; }
+  .header { padding: 16px 16px 0; }
+  .tab-bar { padding: 12px 16px 0; top: 48px; }
+  .stats { padding: 12px 16px; }
+  .card { touch-action: pan-y pinch-zoom; }
+  .archive-view { padding: 8px 16px 100px; }
+  .archive-card-actions { opacity: 1; }
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-dot"></div>
+    <h1>看板</h1>
+  </div>
+  <div class="header-actions">
+    <button class="header-btn" id="themeBtn" onclick="cycleTheme()" title="切换主题">&#9790;</button>
+    <button class="header-btn" onclick="refresh()" title="刷新">&#8635;</button>
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-board" onclick="switchTab('board')">
+    看板 <span class="tab-badge" id="boardCount">0</span>
+  </button>
+  <button class="tab-btn" id="tab-archive" onclick="switchTab('archive')">
+    归档 <span class="tab-badge" id="archiveCount">0</span>
+  </button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<!-- Board View -->
+<div class="board" id="board">
+  <div class="column" data-status="todo">
+    <div class="col-header"><div class="col-dot"></div><span class="col-name">待办</span><span class="col-count" id="count-todo">0</span></div>
+    <div class="cards" id="cards-todo"></div>
+  </div>
+  <div class="column" data-status="doing">
+    <div class="col-header"><div class="col-dot"></div><span class="col-name">进行中</span><span class="col-count" id="count-doing">0</span></div>
+    <div class="cards" id="cards-doing"></div>
+  </div>
+  <div class="column" data-status="done">
+    <div class="col-header"><div class="col-dot"></div><span class="col-name">已完成</span><span class="col-count" id="count-done">0</span></div>
+    <div class="cards" id="cards-done"></div>
+  </div>
+</div>
+
+<!-- Archive View -->
+<div class="archive-view" id="archiveView">
+  <div class="archive-header">
+    <input class="archive-search" id="archiveSearch" placeholder="搜索归档任务..." oninput="renderArchive()">
+  </div>
+  <div class="archive-list" id="archiveList"></div>
+</div>
+
+<button class="fab" onclick="openCreateModal()" title="新建任务" id="fab">+</button>
+
+<!-- Create/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeOverlay(event,'modalOverlay')">
+  <div class="modal">
+    <h2 id="modalTitle">新建任务</h2>
+    <input type="hidden" id="editTaskId">
+    <div class="form-group"><label>标题</label><input type="text" id="taskTitle" placeholder="要做什么" autocomplete="off"></div>
+    <div class="form-group"><label>描述</label><textarea id="taskDesc" placeholder="补充细节"></textarea></div>
+    <div class="form-group">
+      <label>优先级</label>
+      <select id="taskPriority"><option value="normal">普通</option><option value="high">高</option><option value="low">低</option></select>
+    </div>
+    <div class="form-group">
+      <label>状态</label>
+      <select id="taskStatus"><option value="todo">待办</option><option value="doing">进行中</option><option value="done">已完成</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalOverlay')">取消</button>
+      <button class="btn btn-primary" onclick="saveTask()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailOverlay" onclick="closeOverlay(event,'detailOverlay')">
+  <div class="modal">
+    <h2 id="detailTitle"></h2>
+    <p id="detailDesc" style="display:none"></p>
+    <div id="detailMeta"></div>
+    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">备注</label>
+    <div class="note-wrap">
+      <input type="text" id="noteInput" placeholder="添加备注">
+      <button class="btn btn-ghost" onclick="addNote()">+</button>
+    </div>
+    <div class="notes-list" id="notesList"></div>
+    <div class="detail-actions">
+      <button class="btn btn-ghost" onclick="openMoveSheet()">移动到</button>
+      <button class="btn btn-ghost" onclick="editCurrentTask()">编辑</button>
+      <button class="btn btn-archive" id="detailArchiveBtn" onclick="archiveCurrentTask()">归档</button>
+      <button class="btn btn-ghost" style="color:var(--danger);border-color:rgba(239,68,68,.2)" onclick="deleteCurrentTask()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move Sheet (mobile-friendly status picker) -->
+<div class="move-sheet-overlay" id="moveSheetOverlay" onclick="closeOverlay(event,'moveSheetOverlay')">
+  <div class="move-sheet" id="moveSheet">
+    <h3>移动到</h3>
+    <div id="moveOptions"></div>
+    <button class="move-cancel" onclick="closeModal('moveSheetOverlay')">取消</button>
+  </div>
+</div>
+
+<script>
+const API = '/api/tasks';
+let tasks = [];
+let archivedTasks = [];
+let currentDetailId = null;
+let currentTab = 'board';
+
+/* ─── Theme ─── */
+const THEMES = ['auto','dark','light'];
+const THEME_ICONS = { dark: '&#9790;', light: '&#9728;', auto: '&#9681;' };
+const THEME_LABELS = { auto: '自动', dark: '夜间', light: '日间' };
+
+function getTheme() { return localStorage.getItem('kanban-theme') || 'dark'; }
+
+function applyTheme(t) {
+  const root = document.documentElement;
+  if (t === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    root.setAttribute('data-theme', t);
+  }
+  document.getElementById('themeBtn').innerHTML = THEME_ICONS[t];
+  document.getElementById('themeBtn').title = '主题: ' + THEME_LABELS[t];
+}
+
+function cycleTheme() {
+  const cur = getTheme();
+  const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+  localStorage.setItem('kanban-theme', next);
+  applyTheme(next);
+}
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (getTheme() === 'auto') applyTheme('auto');
+});
+
+applyTheme(getTheme());
+
+/* ─── Data ─── */
+async function loadTasks() {
+  const [activeRes, archiveRes] = await Promise.all([
+    fetch(API),
+    fetch(API + '?archived=true')
+  ]);
+  tasks = await activeRes.json();
+  archivedTasks = await archiveRes.json();
+  document.getElementById('boardCount').textContent = tasks.length;
+  document.getElementById('archiveCount').textContent = archivedTasks.length;
+  renderBoard();
+  renderArchive();
+}
+
+async function createTask(data) {
+  const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if (res.ok) await loadTasks();
+}
+
+async function updateTask(id, data) {
+  const res = await fetch(`${API}/${id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+  if (res.ok) await loadTasks();
+}
+
+async function deleteTask(id) {
+  await fetch(`${API}/${id}`, { method:'DELETE' });
+  await loadTasks();
+}
+
+async function archiveTask(id) {
+  await fetch(`${API}/${id}/archive`, { method:'POST' });
+  await loadTasks();
+}
+
+async function unarchiveTask(id) {
+  await fetch(`${API}/${id}/unarchive`, { method:'POST' });
+  await loadTasks();
+}
+
+function refresh() { loadTasks(); }
+
+/* ─── Tab Switching ─── */
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-board').classList.toggle('active', tab === 'board');
+  document.getElementById('tab-archive').classList.toggle('active', tab === 'archive');
+  document.getElementById('board').classList.toggle('hidden', tab !== 'board');
+  document.getElementById('archiveView').classList.toggle('active', tab === 'archive');
+  document.getElementById('fab').style.display = tab === 'board' ? '' : 'none';
+  // Show/hide board stats
+  document.getElementById('stats').style.display = tab === 'board' ? '' : 'none';
+}
+
+/* ─── Render Board ─── */
+function renderBoard() {
+  const statuses = ['todo','doing','done'];
+  const priOrder = {high:0, normal:1, low:2};
+  const counts = {}; statuses.forEach(s => counts[s] = 0);
+  statuses.forEach(s => { const el = document.getElementById(`cards-${s}`); if(el) el.innerHTML = ''; });
+
+  // Sort: high > normal > low, then by created_at desc (newest first within same priority)
+  const sorted = [...tasks].sort((a,b) => {
+    const pa = priOrder[a.priority] ?? 1;
+    const pb = priOrder[b.priority] ?? 1;
+    if (pa !== pb) return pa - pb;
+    return (b.created_at||'').localeCompare(a.created_at||'');
+  });
+
+  sorted.forEach(t => {
+    const s = t.status || 'todo';
+    counts[s] = (counts[s]||0) + 1;
+    const container = document.getElementById(`cards-${s}`);
+    if (!container) return;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.draggable = true;
+    card.dataset.id = t.id;
+
+    const priClass = {high:'pri-high',normal:'pri-normal',low:'pri-low'}[t.priority]||'pri-normal';
+    const priLabel = {high:'高',normal:'普通',low:'低'}[t.priority]||'普通';
+    let notesHtml = '';
+    if (t.notes && t.notes.length) notesHtml = `<div class="card-notes">${t.notes.length} 条备注</div>`;
+
+    card.innerHTML = `
+      <div class="card-title">${esc(t.title)}</div>
+      ${t.description ? `<div class="card-desc">${esc(t.description)}</div>` : ''}
+      <div class="card-footer">
+        <span class="card-pri ${priClass}">${priLabel}</span>
+        <span>${t.created_at||''}</span>
+      </div>
+      ${notesHtml}
+      <span class="swipe-hint">&#8942;</span>
+    `;
+
+    card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', t.id); card.classList.add('dragging'); });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+    let touchMoved = false;
+    card.addEventListener('click', () => { if (!touchMoved) openDetail(t.id); touchMoved = false; });
+    setupCardSwipe(card, t);
+
+    container.appendChild(card);
+  });
+
+  statuses.forEach(s => { const el = document.getElementById(`count-${s}`); if(el) el.textContent = counts[s]; });
+
+  const total = tasks.length;
+  const done = counts.done||0;
+  const rate = total ? Math.round(done/total*100) : 0;
+  document.getElementById('stats').innerHTML = `
+    <span class="stat">总计<b>${total}</b></span>
+    <span class="stat">完成<b>${done}</b></span>
+    <span class="stat">进度<b>${rate}%</b></span>
+    <span class="stat">待办<b>${counts.todo||0}</b></span>
+    <span class="stat">进行中<b>${counts.doing||0}</b></span>
+  `;
+
+  // Drop zones (desktop)
+  document.querySelectorAll('.column').forEach(col => {
+    const zone = col.querySelector('.cards');
+    col.ondragover = e => {
+      e.preventDefault(); zone.classList.add('drag-over');
+      const t = 80;
+      if (e.clientY < t) _startAutoScroll(-1);
+      else if (e.clientY > window.innerHeight - t) _startAutoScroll(1);
+      else _stopAutoScroll();
+    };
+    col.ondragleave = e => { if (!col.contains(e.relatedTarget)) zone.classList.remove('drag-over'); };
+    col.ondrop = e => {
+      e.preventDefault(); zone.classList.remove('drag-over'); _stopAutoScroll();
+      updateTask(e.dataTransfer.getData('text/plain'), { status: col.dataset.status });
+    };
+  });
+}
+
+/* ─── Render Archive ─── */
+function renderArchive() {
+  const query = (document.getElementById('archiveSearch')?.value || '').toLowerCase().trim();
+  let filtered = archivedTasks;
+  if (query) {
+    filtered = archivedTasks.filter(t =>
+      (t.title||'').toLowerCase().includes(query) ||
+      (t.description||'').toLowerCase().includes(query)
+    );
+  }
+
+  const list = document.getElementById('archiveList');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="archive-empty"><div class="archive-empty-icon">📦</div>${query ? '没有匹配的归档任务' : '暂无归档任务'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(t => {
+    const priClass = {high:'pri-high',normal:'pri-normal',low:'pri-low'}[t.priority]||'pri-normal';
+    const priLabel = {high:'高',normal:'普通',low:'低'}[t.priority]||'普通';
+    const statusClass = {done:'archive-status-done',doing:'archive-status-doing',todo:'archive-status-todo'}[t.status]||'archive-status-todo';
+    const statusLabel = {done:'已完成',doing:'进行中',todo:'待办'}[t.status]||'待办';
+    let notesHtml = '';
+    if (t.notes && t.notes.length) notesHtml = `<div class="card-notes">${t.notes.length} 条备注</div>`;
+
+    return `
+    <div class="archive-card" data-id="${t.id}">
+      <div class="archive-card-body" onclick="openArchiveDetail('${t.id}')">
+        <div class="card-title">${esc(t.title)}</div>
+        ${t.description ? `<div class="card-desc">${esc(t.description)}</div>` : ''}
+        <div class="card-footer">
+          <span class="card-pri ${priClass}">${priLabel}</span>
+          <span class="archive-status-tag ${statusClass}">${statusLabel}</span>
+          <span>${t.created_at||''}</span>
+        </div>
+        ${notesHtml}
+      </div>
+      <div class="archive-card-actions">
+        <button class="archive-action-btn unarchive" onclick="event.stopPropagation();unarchiveTask('${t.id}')" title="取消归档">&#8634;</button>
+        <button class="archive-action-btn" onclick="event.stopPropagation();openEditModal('${t.id}')" title="编辑">&#9998;</button>
+        <button class="archive-action-btn delete" onclick="event.stopPropagation();deleteArchiveTask('${t.id}')" title="删除">&#10005;</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openArchiveDetail(id) {
+  currentDetailId = id;
+  const t = archivedTasks.find(x => x.id === id);
+  if (!t) return;
+  openDetailInternal(t, true);
+}
+
+function deleteArchiveTask(id) {
+  if (confirm('确定删除？此操作不可恢复。')) {
+    deleteTask(id);
+  }
+}
+
+/* ─── Mobile Swipe ─── */
+function setupCardSwipe(card, task) {
+  let startX = 0, startY = 0, dx = 0, swiping = false, locked = false;
+
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0; swiping = false; locked = false;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', e => {
+    if (locked) return;
+    const cx = e.touches[0].clientX;
+    const cy = e.touches[0].clientY;
+    const diffX = cx - startX;
+    const diffY = cy - startY;
+
+    if (!swiping && (Math.abs(diffX) > 8 || Math.abs(diffY) > 8)) {
+      if (Math.abs(diffY) > Math.abs(diffX)) { locked = true; return; }
+      swiping = true;
+    }
+
+    if (swiping) {
+      e.preventDefault();
+      dx = diffX;
+      card.style.transform = `translateX(${dx * 0.5}px)`;
+      card.style.opacity = Math.max(0.4, 1 - Math.abs(dx) / 300);
+      card.classList.add('swiping');
+    }
+  }, { passive: false });
+
+  card.addEventListener('touchend', () => {
+    if (swiping && Math.abs(dx) > 60) {
+      const order = ['todo','doing','done'];
+      const idx = order.indexOf(task.status || 'todo');
+      const dir = dx > 0 ? 1 : -1;
+      const newIdx = Math.max(0, Math.min(2, idx + dir));
+      if (newIdx !== idx) {
+        updateTask(task.id, { status: order[newIdx] });
+      }
+    }
+    card.style.transform = '';
+    card.style.opacity = '';
+    card.classList.remove('swiping');
+    swiping = false;
+  });
+}
+
+/* ─── Modals ─── */
+function openCreateModal() {
+  document.getElementById('modalTitle').textContent = '新建任务';
+  document.getElementById('editTaskId').value = '';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskPriority').value = 'normal';
+  document.getElementById('taskStatus').value = 'todo';
+  document.getElementById('modalOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 200);
+}
+
+function openEditModal(id) {
+  // Find task in either active or archived
+  const t = tasks.find(x => x.id === id) || archivedTasks.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('modalTitle').textContent = '编辑任务';
+  document.getElementById('editTaskId').value = t.id;
+  document.getElementById('taskTitle').value = t.title;
+  document.getElementById('taskDesc').value = t.description||'';
+  document.getElementById('taskPriority').value = t.priority||'normal';
+  document.getElementById('taskStatus').value = t.status||'todo';
+  document.getElementById('modalOverlay').classList.add('active');
+  closeDetail();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function closeOverlay(e, id) { if(e.target===document.getElementById(id)) { closeModal(id); if(id==='detailOverlay') closeDetail(); } }
+
+function saveTask() {
+  const id = document.getElementById('editTaskId').value;
+  const data = {
+    title: document.getElementById('taskTitle').value.trim(),
+    description: document.getElementById('taskDesc').value.trim(),
+    priority: document.getElementById('taskPriority').value,
+    status: document.getElementById('taskStatus').value,
+  };
+  if (!data.title) return;
+  if (id) updateTask(id, data); else createTask(data);
+  closeModal('modalOverlay');
+}
+
+/* ─── Detail ─── */
+function openDetail(id) {
+  currentDetailId = id;
+  const t = tasks.find(x => x.id === id);
+  if (!t) return;
+  openDetailInternal(t, false);
+}
+
+function openDetailInternal(t, isArchived) {
+  document.getElementById('detailTitle').textContent = t.title;
+  const desc = document.getElementById('detailDesc');
+  if (t.description) { desc.textContent = t.description; desc.style.display='block'; } else { desc.style.display='none'; }
+  const priLabel = {high:'高',normal:'普通',low:'低'}[t.priority]||'普通';
+  let meta = `${priLabel} / ${t.created_at||'-'}`;
+  if (t.completed_at) meta += ` / 完成 ${t.completed_at}`;
+  if (isArchived) meta += ' / 已归档';
+  document.getElementById('detailMeta').textContent = meta;
+  document.getElementById('detailMeta').style.cssText = 'font-size:11px;color:var(--text-muted);margin-bottom:12px;font-family:JetBrains Mono,monospace';
+  document.getElementById('detailDesc').style.cssText = 'color:var(--text-secondary);font-size:13px;margin-bottom:10px;line-height:1.6';
+  document.getElementById('notesList').innerHTML = (t.notes||[]).map(n =>
+    `<div class="note-item"><span class="note-time">${n.time}</span>${esc(n.text)}</div>`
+  ).join('');
+
+  // Update archive button based on context
+  const archiveBtn = document.getElementById('detailArchiveBtn');
+  if (isArchived) {
+    archiveBtn.textContent = '取消归档';
+    archiveBtn.className = 'btn btn-ghost';
+    archiveBtn.onclick = () => { unarchiveTask(t.id); closeDetail(); };
+  } else {
+    archiveBtn.textContent = '归档';
+    archiveBtn.className = 'btn btn-archive';
+    archiveBtn.onclick = () => { archiveTask(t.id); closeDetail(); };
+  }
+
+  document.getElementById('detailOverlay').classList.add('active');
+}
+
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('active'); currentDetailId=null; }
+
+/* ─── Move Sheet ─── */
+function openMoveSheet() {
+  const t = tasks.find(x => x.id === currentDetailId) || archivedTasks.find(x => x.id === currentDetailId);
+  if (!t) return;
+  const statuses = [
+    { key:'todo', label:'待办', color:'var(--accent)' },
+    { key:'doing', label:'进行中', color:'var(--warn)' },
+    { key:'done', label:'已完成', color:'var(--success)' },
+  ];
+  const current = t.status || 'todo';
+  document.getElementById('moveOptions').innerHTML = statuses.map(s => `
+    <div class="move-option ${s.key===current?'current':''}" onclick="moveTo('${s.key}')">
+      <div class="dot" style="background:${s.color}"></div>
+      <span class="label">${s.label}</span>
+      ${s.key===current ? '<span class="check">&#10003;</span>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('moveSheetOverlay').classList.add('active');
+}
+
+function moveTo(status) {
+  if (currentDetailId) {
+    updateTask(currentDetailId, { status });
+    closeModal('moveSheetOverlay');
+    closeDetail();
+  }
+}
+
+/* ─── Detail actions ─── */
+function editCurrentTask() { if(currentDetailId) openEditModal(currentDetailId); }
+function deleteCurrentTask() { if(currentDetailId && confirm('确定删除？')) { deleteTask(currentDetailId); closeDetail(); } }
+function archiveCurrentTask() {
+  if (currentDetailId) {
+    archiveTask(currentDetailId);
+    closeDetail();
+  }
+}
+function addNote() {
+  const input = document.getElementById('noteInput');
+  const note = input.value.trim();
+  if (!note||!currentDetailId) return;
+  updateTask(currentDetailId, { note });
+  input.value = '';
+  setTimeout(() => {
+    // Re-open detail from correct source
+    const t = tasks.find(x => x.id === currentDetailId) || archivedTasks.find(x => x.id === currentDetailId);
+    if (t) openDetailInternal(t, !!t.archived);
+  }, 200);
+}
+
+/* ─── Keyboard ─── */
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeModal('modalOverlay'); closeModal('moveSheetOverlay'); closeDetail(); }
+  if (e.key==='Enter' && document.getElementById('modalOverlay').classList.contains('active') && document.activeElement.tagName!=='TEXTAREA') saveTask();
+});
+
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ─── Auto-scroll on drag ─── */
+let _autoScrollRAF = null, _scrollDir = 0;
+function _startAutoScroll(dir) {
+  _scrollDir = dir;
+  if (!_autoScrollRAF) {
+    const tick = () => { if (_scrollDir) { window.scrollBy(0, _scrollDir * 10); _autoScrollRAF = requestAnimationFrame(tick); } else { _autoScrollRAF = null; } };
+    _autoScrollRAF = requestAnimationFrame(tick);
+  }
+}
+function _stopAutoScroll() { _scrollDir = 0; if (_autoScrollRAF) { cancelAnimationFrame(_autoScrollRAF); _autoScrollRAF = null; } }
+document.addEventListener('dragend', _stopAutoScroll);
+document.addEventListener('drop', _stopAutoScroll);
+
+loadTasks();
+</script>
+</body>
+</html>
